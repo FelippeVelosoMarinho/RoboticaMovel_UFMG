@@ -17,6 +17,16 @@ def create_data_directory():
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
+def start_socket_server():
+    path = os.path.dirname(os.path.abspath(__file__))
+    server_script = f'python {path}/socket_server.py &'
+    os.system(server_script)
+
+def send_message_to_drone(drone_ip, message):
+    path = os.path.dirname(os.path.abspath(__file__))
+    client_script = f'python {path}/socket_client.py {drone_ip} "{message}" &'
+    os.system(client_script)
+
 def topology():
     "Create a network."
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
@@ -57,11 +67,15 @@ def topology():
         sta_drone.append(n.name)
     sta_drone_send = ' '.join(map(str, sta_drone))
 
-    # # set_socket_ip: localhost must be replaced by ip address
-    # # of the network interface of your system
-    # # The same must be done with socket_client.py
     info("*** Starting Socket Server\n")
-    net.socketServer(ip='127.0.0.1', port=12345)
+    start_socket_server()
+    
+    time.sleep(5)  # Wait for the server to start
+
+    info("*** Sending Messages Between Drones\n")
+    send_message_to_drone('10.0.0.1', 'Hello from Drone 2 to Drone 1')
+    send_message_to_drone('10.0.0.2', 'Hello from Drone 3 to Drone 2')
+    send_message_to_drone('10.0.0.3', 'Hello from Drone 1 to Drone 3')
 
     info("*** Starting CoppeliaSim\n")
     path = os.path.dirname(os.path.abspath(__file__))
@@ -91,6 +105,8 @@ def kill_process():
     os.system('pkill -9 -f coppeliaSim')
     os.system('pkill -9 -f simpleTest.py')
     os.system('pkill -9 -f setNodePosition.py')
+    os.system('pkill -9 -f socket_server.py')
+    os.system('pkill -9 -f socket_client.py')
     if os.path.exists('examples/uav/data/'):
         os.system('rm examples/uav/data/*')
 
