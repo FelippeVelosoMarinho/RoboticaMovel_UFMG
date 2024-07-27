@@ -23,6 +23,7 @@
 # 
 
 from operator import itemgetter
+from prioritydictionary import priorityDictionary
 from graph import DiGraph
 
 ## @package YenKSP
@@ -110,8 +111,8 @@ def dijkstra(graph, node_start, node_end=None):
     Q[node_start] = 0
     
     while Q:
-        v = min(Q, key=Q.get)
-        Q.pop(v)
+        #v = min(Q, key=Q.get)
+        #Q.pop(v)
         if v == node_end:
             break
 

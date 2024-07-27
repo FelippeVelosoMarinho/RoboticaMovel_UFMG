@@ -1,9 +1,10 @@
-import pyvisgraph as vg
-from pyvisgraph.visible_vertices import edge_distance
-import matplotlib.pyplot as plt
-from graph import DiGraph
-from algorithms import dijkstra
 import homotopy as h
+import matplotlib.pyplot as plt
+import pyvisgraph as vg
+from algorithms import dijkstra
+from graph import DiGraph
+from pyvisgraph.visible_vertices import edge_distance
+
 
 def draw(polys, centers=[]):
     # Desenha os obstáculos
@@ -47,12 +48,12 @@ def main():
     plt.figure(1)
     print("Visibility Graph:")
     #draw(polys)	
-    for poly in polys:
-        for vertex in poly:
-            for edge in g.visgraph[vertex]:
-                adj = edge.get_adjacent(vertex)				
-                plt.plot([vertex.x, adj.x], [vertex.y, adj.y], 'b:')
-            plt.plot(vertex.x, vertex.y, 'ro', markersize=8)
+    for poly in polys: # Para cada polígono na lista de obstáculos
+        for vertex in poly: # Para cada vértice no polígono
+            for edge in g.visgraph[vertex]: # Para cada aresta no grafo de visibilidade
+                adj = edge.get_adjacent(vertex) # Vértice adjacente
+                plt.plot([vertex.x, adj.x], [vertex.y, adj.y], 'b:') # Plota a aresta
+            plt.plot(vertex.x, vertex.y, 'ro', markersize=8) # Plota o vértice
     plt.axis('equal')
     plt.axis([-10, 10, -10, 10])
     plt.xlabel("x (m)")
@@ -64,11 +65,11 @@ def main():
     nodenum = {}  # Dicionário para transformar posições 2D em rótulos de nós em G (números)
 
     # Cria o grafo com nós
-    for poly in polys:
-        for vertex in poly:
-            G.add_node(str(node))
-            nodenum[vertex] = str(node)
-            node += 1
+    for poly in polys: # Para cada polígono na lista de obstáculos
+        for vertex in poly: # Para cada vértice no polígono
+            G.add_node(str(node)) # Adiciona um nó ao grafo
+            nodenum[vertex] = str(node) # Associa o vértice ao rótulo do nó
+            node += 1 # Incrementa o rótulo do nó
 
     # Cria as arestas com custos
     for poly in polys:
@@ -79,9 +80,10 @@ def main():
                 signature = h.Signature(centers, vertex, adj)
                 G.add_edge(nodenum[vertex], nodenum[adj], cost, signature)
 
-    print(node)
+    print("Printando o node: ", node)
     # Ponto inicial é o ponto âncora
     start = [[-4.0, 0.0]]	
+    print("Definindo o ponto de partida: ", start)
     start_point = vg.Point(start[0][0], start[0][1])
 
     # Atualiza o mapa de visibilidade
@@ -116,9 +118,9 @@ def main():
     accumulated_robot_path_cost = 0
 
     ###### Loop
-    for _ in range(5):
+    for cont in range(0,5):
         # Leitura da meta
-        while True:
+        while 1:
             goal = plt.ginput()
             goal_point = vg.Point(goal[0][0], goal[0][1])			
             if g.point_in_polygon(goal_point) == -1:
@@ -148,63 +150,158 @@ def main():
 
         print("*********** New Motion ***************")
 
-        # Plota a linha de amarração mais curta anterior e o ponto atual
-        plt.plot(current_point.x, current_point.y, 'rs', markersize=8)
-        plt.text(current_point.x - 0.1, current_point.y - 0.4, r'$p_s$', fontsize=14)
-        for point in short_path:
-            plt.plot(point[0].x, point[0].y, 'r', linestyle='dotted', linewidth=2.0)
-
         # Busca o caminho mais curto
         print("Compute the Shortest Path")
-        print("Goal Position:")
-        plt.plot(goal_point.x, goal_point.y, 'rx', markersize=15)
-        plt.text(goal_point.x - 1.0, goal_point.y + 0.4, r'$p_g$', fontsize=14)
+        print("Goal Position:", current_point)
+        plt.plot(current_point.x, current_point.y, 'rs', markersize=8)
+        plt.text(current_point.x + 0.4, current_point.y, r'$p_g$', fontsize=14)
         
+        for j in range(0, len(short_path) - 1):
+            plt.plot([short_path[j].x, short_path[j+1].x] , [short_path[j].y, short_path[j+1].y], ':g', linewidth=1)
+        
+        hSigkant = hSigk
+        previous_spath = spath
+        
+        # Calcula o novo caminho mais curto
         spath = dijkstra(G, nodenum[current_point], nodenum[goal_point])
+        hSigk = h.pathSignature(G, spath['path'])
+        
+        # Plote o novo caminho mais curto e o novo goal
+        plt.plot(goal_point.x, goal_point.y, 'yo', markersize=10)
+        plt.text(goal_point.x + 0.4, goal_point.y, r'$p_g$', fontsize=14)
         short_path = []
-        for node in spath['path']:
+        
+        for i in range(0, len(spath['path'])):
             for key, value in nodenum.items():
-                if value == node:
-                    short_path.append([key, value])
+                if value == spath['path'][i]:
+                    short_path.append(key)
+        
+        for j in range(0, len(short_path) - 1):
+            plt.plot([short_path[j][0].x, short_path[j+1][0].x], [short_path[j][0].y, short_path[j+1][0].y], 'g', linewidth=1)
         
         print("Current Shortest Path Cost:", spath['cost'])
         accumulated_shortest_path_cost += spath['cost']
         print("Accumulated Shortest Path Cost:", accumulated_shortest_path_cost)
 
-        # Plota o caminho mais curto
-        for node in short_path:
-            plt.plot(node[0].x, node[0].y, 'b.')
-            plt.text(node[0].x - 0.3, node[0].y, str(node[1]))
-
-        plt.plot(goal_point.x, goal_point.y, 'rx', markersize=15)
-        plt.text(goal_point.x - 1.0, goal_point.y + 0.4, r'$p_g$', fontsize=14)
-
-        saved_shortest_paths.append(spath)
-
-        # Planejamento de Movimento do Robô
-        print("Compute the Robot Path")
-        rpath = h.shortestPath(G, nodenum[current_point], nodenum[goal_point], hSigk, centers)
-        robot_path = []
-        for node in rpath['path']:
-            for key, value in nodenum.items():
-                if value == node:
-                    robot_path.append([key, value])
-
-        print("Current Robot Path Cost:", rpath['cost'])
-        accumulated_robot_path_cost += rpath['cost']
-        print("Accumulated Robot Path Cost:", accumulated_robot_path_cost)
-
-        # Plota o caminho do robô
-        for node in robot_path:
-            plt.plot(node[0].x, node[0].y, 'k.')
-            plt.text(node[0].x + 0.3, node[0].y, str(node[1]))
-
-        hSigk = h.pathSignature(G, rpath['path'])
-        saved_robot_paths.append(rpath)
-
-        plt.draw()
-        plt.ginput()
+        # Calcula a assinatura desejada
+        hSigStar  = h.Reduce(h.Invert(hSigkant) + hSigk)
+        
+        # Computa o caminho do robo
+        k = 20
+        shortpath = h.shp(G, previous_spath, nodenum[goal_point], k, hSigStar)
+        
+        # Se encontrar um caminho
+        if shortpath:
+            print("Shortest Homotopic Path Found")
+            short_path = []
+            print("Shortest Homotopic Path Cost:", shortpath['cost'], "-> ".join(shortpath['path']))
+            
+            for i in range(0, len(shortpath['path'])):
+                for key, value in nodenum.items():
+                    if value == shortpath['path'][i]:
+                        short_path.append(key)
+                        
+            for j in range(0, len(short_path) - 1):
+                plt.plot([short_path[j].x, short_path[j+1].x], [short_path[j].y, short_path[j+1].y], 'r--', linewidth=2)
+                
+            # Shortest Path
+            shortest_local_path = dijkstra(G, previous_spath['path'][-1], nodenum[goal_point])
+            temp_path = []
+            for i in range(0, len(shortest_local_path['path'])):
+                for key, value in nodenum.items():
+                    if value == shortest_local_path['path'][i]:
+                        temp_path.append(key)
+            for j in range(0, len(temp_path) - 1):
+                plt.plot([temp_path[j].x, temp_path[j+1].x], [temp_path[j].y, temp_path[j+1].y], 'y', linewidth=2)
+                
+            saved_shortest_paths.insert(0, temp_path) # Insere o caminho mais curto no início da lista
+            accumulated_shortest_path_cost += shortest_local_path['cost']
+            
+            # Robot Path
+            saved_robot_paths.insert(0, shortpath) # salva o caminho sem emaranhados do robô para mostrar
+            accumulated_robot_path_cost += shortpath['cost']
+        else:
+            print("Shortest Homotopic Path Not Found")
+            
+            # Caminho mais longo
+            longestPath = list(reversed(previous_spath['path']))+spath['path'][1:]
+            print("Original: ", longestPath)
+            simp_path = h.SimplifyPath(G, longestPath, hSigStar)
+            _simp_path = []
+            for i in range(0, len(simp_path['path'])):
+                for key, value in nodenum.items():
+                    if value == simp_path['path'][i]:
+                        _simp_path.append(key)
+                        
+            # Shortest Path
+            shortest_local_path = dijkstra(G, previous_spath['path'][-1], nodenum[goal_point])
+            temp_path = []
+            for i in range(0, len(shortest_local_path['path'])):
+                for key, value in nodenum.items():
+                    if value == shortest_local_path['path'][i]:
+                        temp_path.append(key)
+            for j in range(0, len(temp_path) - 1):
+                plt.plot([temp_path[j].x, temp_path[j+1].x], [temp_path[j].y, temp_path[j+1].y], 'y', linewidth=2)
+                
+            saved_shortest_paths.insert(0, temp_path)
+            accumulated_robot_path_cost += shortest_local_path['cost']
+            
+            # Simplified longest Path
+            for j in range(0, len(_simp_path) - 1):
+                plt.plot([_simp_path[j].x, _simp_path[j+1].x], [_simp_path[j].y, _simp_path[j+1].y], 'k--', linewidth=2)
+                
+            saved_robot_paths.insert(-1, simp_path) # Salava o caminho do robo para mostrar sem emaranhados
+            accumulated_robot_path_cost += simp_path['cost']
+            
+        # Remove o goal_point do grafo
+        if current_point != start_point:
+            for edges in g.visgraph[current_point]:
+                adj = edges.get_adjacent(current_point)
+                g.visgraph[adj].remove(vg.Edge(adj, current_point))
+            g.visgraph[current_point].clear()
+            for key in G._data[nodenum[current_point]].keys():
+                G._data[key].pop(nodenum[current_point])
+                G._hdata[key].pop(nodenum[current_point])
+        
+            G._data.pop(nodenum[current_point])
+            G._hdata.pop(nodenum[current_point])
+            del nodenum[current_point]
+            
+        # Update current point
         current_point = goal_point
+        
+    # Plote a configuração final do cabo
+    plt.figure(3)
+    draw(polys)
+    plt.title('Configuração Final do Cabo')
+    plt.plot(start_point.x, start_point.y, 'r*', markersize=15)
+    plt.text(start_point.x+0.4, start_point.y, '$p_b$', fontsize=14)
+    i = len(saved_shortest_paths)
+    
+    for path in saved_shortest_paths:
+        for j in range(0, len(path) - 1):
+            plt.plot([path[j].x, path[j+1].x], [path[j].y, path[j+1].y], 'y', linewidth=2)
+        plt.plot(path[-1].x, path[-1].y, 'ro', markersize=8)
+        plt.text(path[-1].x + 0.3, path[-1].y, '$p_{'+str(i)+'}$', fontsize=14)
+        i -= 1
+        
+    plt.figure(4)
+    draw(polys)
+    plt.plot(start_point.x, start_point.y, 'r*', markersize=15)
+    plt.text(start_point.x+0.4, start_point.y, '$p_b$', fontsize=14)
+    i = len(saved_robot_paths)
+    
+    for path in saved_robot_paths:
+        for j in range(0, len(path['path']) - 1):
+            plt.plot([path['path'][j].x, path['path'][j+1].x], [path['path'][j].y, path['path'][j+1].y], 'r--', linewidth=2)
+        plt.plot(path['path'][-1].x, path['path'][-1].y, 'ro', markersize=8)
+        plt.text(path['path'][-1].x + 0.3, path['path'][-1].y, '$p_{'+str(i)+'}$', fontsize=14)
+        i -= 1
+        
+    print("Accumulated Shortest Path Cost:", accumulated_shortest_path_cost)
+    print("Accumulated Robot Path Cost:", accumulated_robot_path_cost)
+    
+    plt.show()
 
 if __name__ == "__main__":
     main()
