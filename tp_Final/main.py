@@ -64,21 +64,21 @@ def main():
     node = 1
     nodenum = {}  # Dicionário para transformar posições 2D em rótulos de nós em G (números)
 
-    # Cria o grafo com nós
-    for poly in polys: # Para cada polígono na lista de obstáculos
-        for vertex in poly: # Para cada vértice no polígono
-            G.add_node(str(node)) # Adiciona um nó ao grafo
-            nodenum[vertex] = str(node) # Associa o vértice ao rótulo do nó
-            node += 1 # Incrementa o rótulo do nó
+	# Create the Graph with nodes only
+    for i in range(0, len(polys)):
+        for j in range(0,len(polys[i])):
+            G.add_node(str(node))
+            nodenum[polys[i][j]]=str(node)
+            node=node+1
 
-    # Cria as arestas com custos
-    for poly in polys:
-        for vertex in poly:
-            for edge in g.visgraph[vertex]:
-                adj = edge.get_adjacent(vertex)
-                cost = edge_distance(vertex, adj)
-                signature = h.Signature(centers, vertex, adj)
-                G.add_edge(nodenum[vertex], nodenum[adj], cost, signature)
+	# Create the edges with costs
+    for i in range(0, len(polys)):
+        for j in range(0,len(polys[i])):
+            for edges in g.visgraph[polys[i][j]]:
+                adj=edges.get_adjacent(polys[i][j])				
+                cost = edge_distance(polys[i][j], adj)
+                signature = h.Signature(centers, polys[i][j], adj)
+                G.add_edge(nodenum[polys[i][j]], nodenum[adj], cost, signature)
 
     print("Printando o node: ", node)
     # Ponto inicial é o ponto âncora

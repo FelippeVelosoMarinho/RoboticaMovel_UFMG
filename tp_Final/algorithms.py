@@ -110,7 +110,7 @@ def dijkstra(graph, node_start, node_end=None):
     distances[node_start] = 0
     Q[node_start] = 0
     
-    while Q:
+    while v in Q:
         #v = min(Q, key=Q.get)
         #Q.pop(v)
         if v == node_end:
