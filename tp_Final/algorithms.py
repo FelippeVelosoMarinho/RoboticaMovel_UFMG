@@ -102,7 +102,7 @@ def ksp_yen(graph, node_start, node_end, max_k=2):
 def dijkstra(graph, node_start, node_end=None):
     distances = {}      
     previous = {}       
-    Q = priorityDictionary()
+    Q = priorityDictionary() # Similar a uma fila de prioridades, mantem os nos a serem visitados ordenados por custo
     
     for v in graph:
         distances[v] = graph.INFINITY
@@ -112,25 +112,25 @@ def dijkstra(graph, node_start, node_end=None):
     distances[node_start] = 0
     Q[node_start] = 0
     
-    print(f"PriorityDictionary na função dijkstra: {Q}")
+    #print(f"PriorityDictionary na função dijkstra: {Q}")
     for v in Q:
         if v == node_end: break
 
-        for u in graph[v]:
-            cost_vu = distances[v] + graph[v][u]
+        for u in graph[v]: # Para cada no u adjacente a v
+            cost_vu = distances[v] + graph[v][u] # calcula o custo de v a u
             
-            if cost_vu < distances[u]:
-                distances[u] = cost_vu
-                Q[u] = cost_vu
-                previous[u] = v
+            if cost_vu < distances[u]: # Se o custo de v a u for menor que o custo anterior
+                distances[u] = cost_vu # Atualiza o custo de u
+                Q[u] = cost_vu # Atualiza a fila de prioridades
+                previous[u] = v # Atualiza o predecessor de u
             
-            print("v:", v, "u:", u, "cost_vu:", cost_vu, "distances[u]:", distances[u])
+            #print("v:", v, "u:", u, "cost_vu:", cost_vu, "distances[u]:", distances[u])
 
-    if node_end:
-        return {'cost': distances[node_end], 
-                'path': path(previous, node_start, node_end)}
+    if node_end: # Se o no final foi especificado
+        return {'cost': distances[node_end], # Retorna o custo do caminho
+                'path': path(previous, node_start, node_end)} # Retorna o caminho
     else:
-        return (distances, previous)
+        return (distances, previous) # Retorna as distancias e os predecessores
 
 ## Finds a path from a source to a sink using a supplied previous node list.
 #

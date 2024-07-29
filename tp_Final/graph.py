@@ -93,7 +93,8 @@ class DiGraph:
 
 
     def getSignature(self, node1, node2):
-        if self._hdata.has_key(node1):
+        #if self._hdata.has_key(node1):
+        if node1 in self._data:
             return self._hdata[node1][node2]
         else:
             return None 	
