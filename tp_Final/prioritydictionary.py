@@ -23,51 +23,65 @@
 # http://code.activestate.com/recipes/117228/
 #
 
-import heapq
+from __future__ import generators
 
 class priorityDictionary(dict):
     def __init__(self):
-        '''Initialize PriorityDictionary by creating a binary heap of pairs 
-        (value, key). Note that changing or removing a dict entry will not 
+        '''Initialize priorityDictionary by creating binary heap of pairs 
+        (value,key).  Note that changing or removing a dict entry will not 
         remove the old pair from the heap until it is found by smallest() or
-        until the heap is rebuilt.'''
+		until the heap is rebuilt.'''
         self.__heap = []
-        self.__entry_finder = {}  # mapping of tasks to entries
-        self.__REMOVED = '<removed-task>'  # placeholder for a removed task
-        super().__init__()
+        dict.__init__(self)
 
     def smallest(self):
-        '''Find the smallest item after removing deleted items from the heap.'''
-        while self.__heap:
-            value, key = self.__heap[0]
-            if key is not self.__entry_finder or self.__entry_finder[key] != value:
-                heapq.heappop(self.__heap)
-            else:
-                return key
-        raise IndexError("smallest of empty PriorityDictionary")
+        '''Find smallest item after removing deleted items from heap.'''
+        if len(self) == 0:
+            raise IndexError("smallest of empty PriorityDictionary")
+        heap = self.__heap
+        while heap[0][1] not in self or self[heap[0][1]] != heap[0][0]:
+            lastItem = heap.pop()
+            insertionPoint = 0
+            while 1:
+                smallChild = 2*insertionPoint+1
+                if smallChild+1 < len(heap) and \
+                        heap[smallChild] > heap[smallChild+1]:
+                    smallChild += 1
+                if smallChild >= len(heap) or lastItem <= heap[smallChild]:
+                    heap[insertionPoint] = lastItem
+                    break
+                heap[insertionPoint] = heap[smallChild]
+                insertionPoint = smallChild
+        return heap[0][1]
 
     def __iter__(self):
-        '''Create a destructive sorted iterator of PriorityDictionary.'''
-        while self:
-            x = self.smallest()
-            yield x
-            del self[x]
-
-    def __setitem__(self, key, val):
+        '''Create destructive sorted iterator of priorityDictionary.'''
+        def iterfn():
+            while len(self) > 0:
+                x = self.smallest()
+                yield x
+                del self[x]
+        return iterfn()
+    def __setitem__(self,key,val):
         '''Change value stored in dictionary and add corresponding pair to heap.  
         Rebuilds the heap if the number of deleted items grows too large, to 
         avoid memory leakage.'''
-        if key in self.__entry_finder:
-            self.remove_task(key)
-        self.__entry_finder[key] = val
-        heapq.heappush(self.__heap, (val, key))
-        super().__setitem__(key, val)
-
-    def remove_task(self, key):
-        '''Mark an existing task as REMOVED.'''
-        self.__entry_finder[key] = self.__REMOVED
-
-    def setdefault(self, key, val):
+        dict.__setitem__(self,key,val)
+        heap = self.__heap
+        if len(heap) > 2 * len(self):
+            self.__heap = [(v, k) for k, v in self.items()]
+            self.__heap.sort()  # builtin sort likely faster than O(n) heapify
+        else:
+            newPair = (val,key)
+            insertionPoint = len(heap)
+            heap.append(None)
+            while insertionPoint > 0 and \
+                    newPair < heap[(insertionPoint-1)//2]:
+                heap[insertionPoint] = heap[(insertionPoint-1)//2]
+                insertionPoint = (insertionPoint-1)//2
+            heap[insertionPoint] = newPair
+	
+    def setdefault(self,key,val):
         '''Reimplement setdefault to call our customized __setitem__.'''
         if key not in self:
             self[key] = val

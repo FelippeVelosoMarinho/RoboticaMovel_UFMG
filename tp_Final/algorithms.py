@@ -21,10 +21,10 @@
 #  MA 02110-1301, USA.
 #
 # 
-
 from operator import itemgetter
-from prioritydictionary import priorityDictionary
+
 from graph import DiGraph
+from prioritydictionary import priorityDictionary
 
 ## @package YenKSP
 # Computes K-Shortest Paths using Yen's Algorithm.
@@ -51,10 +51,11 @@ def ksp_yen(graph, node_start, node_end, max_k=2):
           'path': path(previous, node_start, node_end)}]
     B = []
     
-    if not A[0]['path']: return A
+    if not A[0]['path']:
+        return A
     
     for k in range(1, max_k):
-        for i in range(len(A[-1]['path']) - 1):
+        for i in range(0, len(A[-1]['path']) - 1):
             node_spur = A[-1]['path'][i]
             path_root = A[-1]['path'][:i+1]
             
@@ -74,15 +75,16 @@ def ksp_yen(graph, node_start, node_end, max_k=2):
                 dist_total = distances[node_spur] + path_spur['cost']
                 potential_k = {'cost': dist_total, 'path': path_total}
             
-                if potential_k not in B:
+                if not (potential_k in B):
                     B.append(potential_k)
             
             for edge in edges_removed:
                 graph.add_edge(edge[0], edge[1], edge[2])
         
-        if B:
+        if len(B):
             B = sorted(B, key=itemgetter('cost'))
-            A.append(B.pop(0))
+            A.append(B[0])
+            B.pop(0)
         else:
             break
     
@@ -104,17 +106,15 @@ def dijkstra(graph, node_start, node_end=None):
     
     for v in graph:
         distances[v] = graph.INFINITY
-        previous[v] = graph.UNDEFINED
+        previous[v] = graph.UNDEFINDED
         Q[v] = graph.INFINITY
     
     distances[node_start] = 0
     Q[node_start] = 0
     
-    while v in Q:
-        #v = min(Q, key=Q.get)
-        #Q.pop(v)
-        if v == node_end:
-            break
+    print(f"PriorityDictionary na função dijkstra: {Q}")
+    for v in Q:
+        if v == node_end: break
 
         for u in graph[v]:
             cost_vu = distances[v] + graph[v][u]
@@ -123,6 +123,8 @@ def dijkstra(graph, node_start, node_end=None):
                 distances[u] = cost_vu
                 Q[u] = cost_vu
                 previous[u] = v
+            
+            print("v:", v, "u:", u, "cost_vu:", cost_vu, "distances[u]:", distances[u])
 
     if node_end:
         return {'cost': distances[node_end], 
@@ -148,7 +150,7 @@ def path(previous, node_start, node_end):
         if previous[node_curr] == node_start:
             route.append(node_start)
             break
-        elif previous[node_curr] == DiGraph.UNDEFINED:
+        elif previous[node_curr] == DiGraph.UNDEFINDED:
             return []
         
         node_curr = previous[node_curr]

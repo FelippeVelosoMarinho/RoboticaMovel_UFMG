@@ -21,15 +21,16 @@
 #  MA 02110-1301, USA.
 #
 #
-
-import os
 import json
+import os
 import random
+
 from graphviz import Graphviz
+
 
 ## @brief Represents a directed graph of nodes and edges.
 # 
-# The directed graph is identified with a supplied name and stored in the 
+# The directed graph is indentified with a supplied name and stored in the 
 # "data/json/" folder if saved. Initially the graph contains zero nodes, but
 # can be populated automatically by loading the data of the supplied name. The
 # graph can also be randomly generated, or manually configured.
@@ -46,7 +47,7 @@ class DiGraph:
     INFINITY = 10000
     
     ## Represents a NULL predecessor.
-    UNDEFINED = None
+    UNDEFINDED = None
     
     ## Specifies the identifier for the graph.
     _name = "graph"
@@ -58,7 +59,7 @@ class DiGraph:
     _data = {}
     _hdata = {}
     
-    ## Initializes the graph with an identifier and Graphviz object.
+    ## Initializes the graph with an indentifier and Graphviz object.
     #    
     # @post The graph will contain the data specified by the identifier, if that
     # data exist. If not, then the graph will be empty.
@@ -80,20 +81,22 @@ class DiGraph:
     #
     # @param self The object pointer.
     # @param node The node whose edges are being queried.
-    # @retval {} A dictionary of the edges and their cost if the node exists 
+    # @retval {} A dictionary of the edges and thier cost if the node exist 
     # within the graph or None if the node is not in the graph.
     #
     def __getitem__(self, node):
+        #if self._data.has_key(node):
         if node in self._data:
             return self._data[node]
         else:
             return None
 
+
     def getSignature(self, node1, node2):
-        if node1 in self._hdata:
+        if self._hdata.has_key(node1):
             return self._hdata[node1][node2]
         else:
-            return None
+            return None 	
 
     ## Iterator for the digraph object.
     #
@@ -102,7 +105,7 @@ class DiGraph:
     # graph.
     #
     def __iter__(self):
-        return iter(self._data)
+        return self._data.__iter__()
 
     ## Adds a node to the graph.
     #
@@ -112,6 +115,7 @@ class DiGraph:
     # existed in the graph.
     #
     def add_node(self, node):
+        #if self._data.has_key(node):
         if node in self._data:
             return False
 
@@ -120,9 +124,9 @@ class DiGraph:
 
         return True
 
-    ## Adds an edge to the graph.
+    ## Adds a edge to the graph.
     #
-    # @post The two nodes specified exist within the graph and there exists an
+    # @post The two nodes specified exist within the graph and their exist an
     # edge between them of the specified value.
     #
     # @param self The object pointer.
@@ -140,7 +144,7 @@ class DiGraph:
         
         self._data[node_from][node_to] = cost
         self._hdata[node_from][node_to] = hSignature
-    
+	
         return
 
     ## Removes an edge from the graph.
@@ -155,10 +159,10 @@ class DiGraph:
     # if the specified edge does not exist, then -1 is returned.
     #
     def remove_edge(self, node_from, node_to, cost=None):
-        if node_from not in self._data:
+        if not self._data.has_key(node_from):
             return -1
         
-        if node_to in self._data[node_from]:
+        if self._data[node_from].has_key(node_to):
             if not cost:
                 cost = self._data[node_from][node_to]
                 
@@ -176,9 +180,9 @@ class DiGraph:
         else:
             return -1
     
-    ## Populates the graph with the data of the graph identifier.
+    ## Populates the graph with the data of the graph indentifier.
     #
-    # @pre The _name variable has been set and there exists a ".json" file at
+    # @pre The _name variable has been set and there exist a ".json" file at
     # the directory specified by _directory_data with the graph data.
     # @post The _data dictionary will contain all the nodes and edges of the 
     # graph.
@@ -188,12 +192,13 @@ class DiGraph:
     # False otherwise.
     # 
     def load(self):
-        path_json = f"{self._directory_data}{self._name}.json"
+        path_json = "%s%s.json" % (self._directory_data, self._name)
         if not os.path.exists(path_json):
             return False
         
-        with open(path_json, 'r') as fhandle:
-            self._data = json.load(fhandle)
+        fhandle = open(path_json, 'r')
+        self._data = json.loads(fhandle.read())
+        fhandle.close()
         
         return True
     
@@ -201,20 +206,93 @@ class DiGraph:
     #
     # @pre The _name variable has been set and the _data dictionary contains all
     # the nodes and edges of the graph.
-    # @post There exists a ".json" file at the directory specified by 
+    # @post There exist a ".json" file at the directory specified by 
     # _directory_data with the graph data.
     # 
     # @param self The object pointer.
     # 
     def save(self):
         if not os.path.exists(self._directory_data):
-            os.makedirs(self._directory_data)
+            os.mkdir(self._directory_data)
         
-        with open(f"{self._directory_data}{self._name}.json", 'w') as fhandle:
-            json.dump(self._data, fhandle)
+        fhandle = open("%s%s.json" % (self._directory_data, self._name), 'w')
+        fhandle.write(json.dumps(self._data))
+        fhandle.close()
         
         return
     
     ## Generates an image of the graph.
     #
+    # @pre The _name variable has been set and the _data dictionary contains all
+    # the nodes and edges of the graph.
+    # @post There exist a ".png" file at the directory specified by Graphviz 
+    # with the graph image.
     #
+    # @param frames Denotes whether the generated image will be a frame in a set
+    # of multiple images. 
+    # @param painter A new Graphviz object to paint the graph with.
+    # 
+    def export(self, frames=False, painter=None):
+        if not painter:
+            painter = self._painter
+        
+        painter.set_graph(self._data)
+        painter.generate(self._name, frames)
+        
+        return
+    
+    ## Populates the graph with random data.
+    #
+    # @post The _data dictionary will contain all the nodes and edges of the 
+    # graph.
+    #
+    # @param self The object pointer.
+    # @param num_nodes The amount of nodes the graph should contain.
+    # @param num_edges The amount of edges the graph should contain.
+    # @param max_cost The maximum cost of any edge in the graph.
+    # 
+    def random(self, num_nodes, num_edges, max_cost):
+        self._data = {}
+        self._hdata = {}
+        
+        for node in range(num_nodes):
+            self.add_node("N%d" % node)
+        
+        for edge in range(num_edges):
+            node_from = random.choice(self._data.keys())
+            
+            node_to = node_from
+            while node_to == node_from:
+                node_to = random.choice(self._data.keys())
+            
+            cost = random.randrange(0, max_cost) + 1
+            self.add_edge(node_from, node_to, cost)
+        
+        return
+    
+    ## Sets the graph indentifier.
+    #    
+    # @post The _name variable will contain the specified name.
+    #
+    # @param self The object pointer.
+    # @param name The identifier for the graph by which the data is stored as or
+    # will be stored as.
+    # @retval bool True is the name was set, False otherwise.
+    # 
+    def set_name(self, name):
+        if name:
+            self._name = name
+        
+            return True
+        else:
+            return False
+    
+    ## The reference to the Graphviz object.
+    #    
+    # @pre The _painter variable has been initialized with the Graphviz object.
+    #
+    # @param self The object pointer.
+    # @retval Graphviz The Graphviz object used by the graph.
+    #
+    def painter(self):
+        return self._painter

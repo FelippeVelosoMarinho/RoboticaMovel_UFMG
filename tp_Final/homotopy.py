@@ -90,29 +90,33 @@ def pathSignature(graph, path):  # compute the path signature
         signature += graph.getSignature(path[i], path[i + 1])
     return Reduce(signature)
 
-def Compare(signature1, signature2):  # compare two signatures and return the differences
+def Compare(signature1, signature2): # compare two signatures and return the differences
+    _oneMinusTwo = []
+    _twoMinusOne = []
     if signature1 == signature2:
-        return False, [], []
+        _different = False
     else:
+        _different = True
         _oneMinusTwo = [label for label in signature1 if label not in signature2]
         _twoMinusOne = [label for label in signature2 if label not in signature1]
-        return True, _oneMinusTwo, _twoMinusOne
 
-def hdijkstra(graph, node_start, node_end=None, hstar=[]):  # Dijkstra that only follows edges with signature in hstar
+    return (_different, _oneMinusTwo, _twoMinusOne)
+
+def hdijkstra(graph, node_start, node_end=None, hstar=[]): # Dijkstra that only follow edges with signature in hstar
     distances = {}      
     previous = {}       
     Q = priorityDictionary()
     
     for v in graph:
         distances[v] = graph.INFINITY
-        previous[v] = graph.UNDEFINED
+        previous[v] = graph.UNDEFINDED
         Q[v] = graph.INFINITY
     
     distances[node_start] = 0
     Q[node_start] = 0
     
     for v in Q:
-        if v == node_end:
+        if v == node_end: 
             break
 
         for u in graph[v]:
@@ -123,8 +127,8 @@ def hdijkstra(graph, node_start, node_end=None, hstar=[]):  # Dijkstra that only
                     if label in hstar:
                         hasLabel = True
                 if not hasLabel:
-                    continue        
-            
+                    continue            
+                
             cost_vu = distances[v] + graph[v][u]
             
             if cost_vu < distances[u]:
@@ -136,7 +140,7 @@ def hdijkstra(graph, node_start, node_end=None, hstar=[]):  # Dijkstra that only
         return {'cost': distances[node_end], 
                 'path': path(previous, node_start, node_end)}
     else:
-        return distances, previous
+        return (distances, previous)  
 
 def shp(graph, previous_path, node_end, max_k=2, hSignatureStar=[]):
     current_start = -1    
@@ -148,10 +152,12 @@ def shp(graph, previous_path, node_end, max_k=2, hSignatureStar=[]):
       
     for k in range(1, max_k):
         newPath = h_ksp_yen(graph, node_start, node_end, 10, hSignatureStar, reversePath)
+        
         if newPath['path']:
             if reversePath:
                 newPath['path'] = reversePath + newPath['path']
                 newPath['cost'] = reverseCost + newPath['cost']
+
             A.insert(-1, newPath)  # Insert at the bottom
 
         current_start -= 1
@@ -162,10 +168,10 @@ def shp(graph, previous_path, node_end, max_k=2, hSignatureStar=[]):
         else:
             reversePath = [str(node_start)]
         
-        reverseCost = reverseCost + graph[node_start][previous_path['path'][current_start]]
+        reverseCost += graph[node_start][previous_path['path'][current_start]]
         node_start = previous_path['path'][current_start]
 
-    print("ksp run", k, "times, finding", len(A), "paths!")
+    print(f"ksp run {k} times, finding {len(A)} paths!")
     
     if len(A):
         A = sorted(A, key=itemgetter('cost'))    
@@ -183,17 +189,17 @@ def SimplifyPath(graph, path, hSignatureStar=[]):
         j = 2
         removedNodes = []
         while (i + j) < len(path):
-            if (path[i + j] in graph[path[i]]): 
-                if (graph.getSignature(path[i], path[i + j]) == pathSignature(graph, path[i:(i + j + 1)])):
-                    removedNodes += [newPath[-1]]  # store the element to be removed
-                    newCost -= graph[newPath[-2]][newPath[-1]]  # remove the cost related to this element
-                    newPath[-1] = path[i + j]  # replace the last element by the new one
+            if path[i + j] in graph[path[i]]: 
+                if graph.getSignature(path[i], path[i + j]) == pathSignature(graph, path[i:(i + j + 1)]):
+                    removedNodes += [newPath[-1]]             # store the element to be removed
+                    newCost -= graph[newPath[-2]][newPath[-1]]    # remove the cost related to this element
+                    newPath[-1] = path[i + j]                # replace the last element by the new one
                     newCost += graph[newPath[-2]][newPath[-1]]  # update the cost
                 j += 1
             else:
                 break
         i += 1
-        while path[i] in removedNodes:  # If the node i was removed, skip to the next node
+        while path[i] in removedNodes:     # If the node i was removed, skip to the next node
             removedNodes.remove(path[i])
             i += 1
             if i > len(path):
@@ -201,8 +207,7 @@ def SimplifyPath(graph, path, hSignatureStar=[]):
     newPath += path[i + 1:]
     newCost += pathCost(graph, path[i:]) 
     
-    return {'cost': newCost, 
-            'path': newPath}
+    return {'cost': newCost, 'path': newPath}
 
 def path(previous, node_start, node_end):
     route = []
@@ -222,16 +227,16 @@ def path(previous, node_start, node_end):
     return route
 
 def h_ksp_yen(graph, node_start, node_end, max_k=2, hSignatureStar=[], reverse_path=[]):
-    distances, previous = hdijkstra(graph, node_start, None, hSignatureStar) 		
-       
+    distances, previous = hdijkstra(graph, node_start, None, hSignatureStar)        
+    
     A = [{'cost': distances[node_end], 
           'path': path(previous, node_start, node_end)}]
     B = []
     
-    if not A[0]['path']:
+    if not A[0]['path']: 
         return A[0]
 
-    if pathSignature(graph, reverse_path + A[0]['path']) == hSignatureStar:
+    if pathSignature(graph, reverse_path + A[0]['path']) == hSignatureStar:    
         print("ksp found a path in 1 iteration!")
         return A[0]
    
@@ -250,7 +255,7 @@ def h_ksp_yen(graph, node_start, node_end, max_k=2, hSignatureStar=[], reverse_p
                         continue
                     edges_removed.append([curr_path[i], curr_path[i + 1], cost, _hsignature])
 
-            path_spur = hdijkstra(graph, node_spur, node_end, hSignatureStar) 	            
+            path_spur = hdijkstra(graph, node_spur, node_end, hSignatureStar)                
                         
             if path_spur['path']:
                 path_total = path_root[:-1] + path_spur['path']
@@ -264,17 +269,16 @@ def h_ksp_yen(graph, node_start, node_end, max_k=2, hSignatureStar=[], reverse_p
                 graph.add_edge(edge[0], edge[1], edge[2], edge[3])
         
         if len(B):
-            B = sorted(B, key=itemgetter('cost'))    
+            B = sorted(B, key=itemgetter('cost'))                
             A.append(B[0])
             if pathSignature(graph, reverse_path + A[-1]['path']) == hSignatureStar:
-                print("ksp found a path in", k + 1, "iterations!")
+                print(f"ksp found a path in {k + 1} iterations!")
                 return A[-1]        
             B.pop(0)
             A = sorted(A, key=itemgetter('cost'))
         else:
             break
     
-    print("ksp did not find a path after", k + 1, "tries!")
+    print(f"ksp did not find a path after {k + 1} tries!")
     A[0]['path'] = None    
-    
     return A[0]

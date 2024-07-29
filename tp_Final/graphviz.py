@@ -453,4 +453,3 @@ class Graphviz:
                 color = ", penwidth=2, color=\"%s\"" % path_info['colorEdge']
         
         return color
-
